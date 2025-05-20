@@ -2,6 +2,11 @@ package src.estudantes.entidades;
 
 import java.util.Random;
 
+import javax.sound.sampled.Port;
+
+import java.lang.reflect.Array;
+import java.util.Arrays;
+
 import src.professor.entidades.*;
 
 /**
@@ -83,6 +88,49 @@ public class Burocrata {
         return false;
     }
 
+    private static boolean docSubstancial(Documento doc) {
+        if (doc.getPaginas() >= 100) {
+            if (doc instanceof Portaria) {
+                Portaria temp = (Portaria) doc;
+                if (temp.getValido())
+                    return true;
+                else
+                    return false;
+            }
+            if (doc instanceof Edital) {
+                Edital temp = (Edital) doc;
+                if (temp.getValido())
+                    return true;
+                else
+                    return false;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasDestinatarioComum(Processo processo) {
+        Documento[] docs = processo.pegarCopiaDoProcesso();
+        String[] destinatarios = null;
+        String destinatario = null;
+        for (Documento doc : docs) {
+            if (doc instanceof Oficio) {
+                Oficio temp = (Oficio) doc;
+                destinatario = temp.getDestinatario();
+            }
+            if (doc instanceof Circular) {
+                Circular temp = (Circular) doc;
+                destinatarios = temp.getDestinatarios();
+            }
+        }
+        if (!destinatario.equals(null) || !destinatarios.equals(null)) {
+            for (String nome : destinatarios) {
+                if (nome.equals(destinatario))
+                    return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Executa a lógica de criação e despacho dos processos.
      * <br>
@@ -123,14 +171,14 @@ public class Burocrata {
      * ao mesmo tempo (Feito)
      * 
      * Uma Portaria e Edital com 100 páginas é um
-     * Documento Substancial, portanto devem ser despachados
-     * sozinho, exceto caso estiverem invalidos
+     * Documento Substancial, portanto devem ser
+     * despachados sozinho, exceto caso estiverem invalidos
      *
      * Diferentes Circulares e Ofícios só podem ser despachados
      * juntos se tiverem um destinatário em comum.
      * 
      * Diplomas só podem ser despachados com Diplomas, Certificados
-     * ou Atas.
+     * ou Atas. - deixar um processo para diplomas e certificados e atas
      * 
      * Atestados de diferentes categorias não podem estar no mesmo
      * processo.
@@ -147,10 +195,10 @@ public class Burocrata {
         Random aleatorio = new Random();
         int escolheMonte = (int) aleatorio.nextInt(0, 9);
         Documento[] monte = null;
-        Documento escolhido = null;
         Processo[] processos = mesa.getProcessos();
         CodigoCurso aux = null;
-        while (monte == null) {
+        Documento escolhido = null;
+        while (monte.length == 0) {
             switch (escolheMonte) {
                 case 0:
                     aux = CodigoCurso.GRADUACAO_CIENCIA_DA_COMPUTACAO;
@@ -197,45 +245,44 @@ public class Burocrata {
             }
         }
 
-        if (monte.length != 0) {
-            int i;
-            boolean proximo;
-            for (i = 0; i < 5; i++) {
-                proximo = false;
-                for (int j = 0; j < monte.length; j++) {
-                    if (monte[j] != null) {
-                        escolhido = monte[j];
-                        if (processos[i].pegarCopiaDoProcesso().length == 0) {
+        int i;
+        boolean proximo;
+        for (i = 0; i < 3; i++) {
+            proximo = false;
+            for (int j = 0; j < monte.length; j++) {
+                if (monte[j] != null) {
+                    escolhido = monte[j];
+                    if (processos[i].pegarCopiaDoProcesso().length == 0) {
 
-                            processos[i].adicionarDocumento(escolhido);
-                            universidade.removerDocumentoDoMonteDoCurso(escolhido, aux);
+                        processos[i].adicionarDocumento(escolhido);
+                        universidade.removerDocumentoDoMonteDoCurso(escolhido, aux);
 
-                            monte[j] = null;
-                        } else if (((escolheMonte > 6) && hasDocumentosPos(processos[i])) || escolhido instanceof Ata) {
+                        monte[j] = null;
+                    } else if (((escolheMonte > 6) && hasDocumentosPos(processos[i])) || escolhido instanceof Ata) {
 
-                            processos[i].adicionarDocumento(escolhido);
-                            universidade.removerDocumentoDoMonteDoCurso(escolhido, aux);
+                        processos[i].adicionarDocumento(escolhido);
+                        universidade.removerDocumentoDoMonteDoCurso(escolhido, aux);
 
-                            if (precisaRemoverDocumento(processos[i])) {
-                                processos[i].removerDocumento(escolhido);
-                                proximo = true;
-                                break;
-                            }
-                            monte[j] = null;
-
-                        } else {
+                        if (precisaRemoverDocumento(processos[i])) {
+                            processos[i].removerDocumento(escolhido);
                             proximo = true;
                             break;
                         }
+                        monte[j] = null;
+
+                    } else {
+                        proximo = true;
+                        break;
                     }
                 }
-                if (!proximo)
-                    break;
             }
-
+            if (!proximo)
+                break;
         }
-        
-        for (Processo processo : processos) {
+
+        for (
+
+        Processo processo : processos) {
             if (processo.pegarCopiaDoProcesso().length > 0)
                 universidade.despachar(processo);
         }
