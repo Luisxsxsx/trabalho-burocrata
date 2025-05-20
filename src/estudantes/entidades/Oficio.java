@@ -18,7 +18,7 @@ public class Oficio extends Deliberacao {
     public boolean equals(Object o) {
         if (o == this)
             return true;
-        if (o == null || o.getClass() == getClass())
+        if (o == null || o.getClass() != getClass())
             return false;
 
         Oficio aux = (Oficio) o;

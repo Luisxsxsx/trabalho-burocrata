@@ -20,7 +20,7 @@ public class Portaria extends Norma {
         if (o == this)
             return true;
 
-        if (o == null || o.getClass() == this.getClass())
+        if (o == null || o.getClass() != this.getClass())
             return false;
 
         Portaria aux = (Portaria) o;

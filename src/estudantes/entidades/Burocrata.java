@@ -1,5 +1,7 @@
 package src.estudantes.entidades;
 
+import java.util.Random;
+
 import src.professor.entidades.*;
 
 /**
@@ -42,6 +44,45 @@ public class Burocrata {
         return estresse;
     }
 
+    private static int contarPaginasProcesso(Processo processo) {
+        int paginas = 0;
+        Documento[] docs = processo.pegarCopiaDoProcesso();
+        if (docs.length == 0)
+            return paginas;
+
+        for (Documento doc : docs) {
+            paginas += doc.getPaginas();
+        }
+
+        return paginas;
+    }
+
+    private static boolean precisaRemoverDocumento(Processo processo) {
+        if (contarPaginasProcesso(processo) > 250)
+            return true;
+        return false;
+    }
+
+    private static boolean hasDocumentosPos(Processo processo) {
+        Documento[] docs = processo.pegarCopiaDoProcesso();
+        for (Documento documento : docs) {
+            if (documento.getCodigoCurso() == CodigoCurso.POS_GRADUACAO_ENGENHARIA
+                    || documento.getCodigoCurso() == CodigoCurso.POS_GRADUACAO_ENGENHARIA_ELETRICA
+                    || documento.getCodigoCurso() == CodigoCurso.POS_GRADUACAO_ENGENHARIA_SOFTWARE)
+                return true;
+        }
+        return false;
+    }
+
+    private static boolean hasAdmDoc(Processo processo) {
+        Documento[] docs = processo.pegarCopiaDoProcesso();
+        for (Documento doc : docs) {
+            if (doc instanceof DocumentoAdministrativo)
+                return true;
+        }
+        return false;
+    }
+
     /**
      * Executa a lógica de criação e despacho dos processos.
      * <br>
@@ -72,39 +113,134 @@ public class Burocrata {
      * @see professor.entidades.Universidade#devolverDocumentoParaMonteDoCurso(estudantes.entidades.Documento,
      *      professor.entidades.CodigoCurso)
      */
-/*
-         * Um processo não pode conter Doc de Administração
-         * e Doc Acadêmicos simultaneamente, mas Atas podem
-         * 
-         * Um processo não pode ser despachado apenas com atas
-         * 
-         * Um processo não pode despachar Doc de graduação e Pós
-         * ao mesmo tempo
-         * 
-         * Uma Portaria e Edital com 100 páginas é um 
-         * Documento Substancial, portanto devem ser despachados
-         * sozinho, exceto caso estiverem invalidos
-         *
-         * Diferentes Circulares e Ofícios só podem ser despachados
-         * juntos se tiverem um destinatário em comum.
-         * 
-         * Diplomas só podem ser despachados com Diplomas, Certificados
-         * ou Atas.
-         * 
-         * Atestados de diferentes categorias não podem estar no mesmo
-         * processo.
-         * 
-         * DESCUMPRIR ESSAS REGRAS GERA ESTRESSE!
-         * 
-         * Números de páginas máximos por processo = 250
-         * exceder este número causa perda de todos arquivos
-         * no despacho e uma Advertência administrativa
-         * 
-         * Sempre que um processo é despachado, outro vazio é criado
-         */
+    /*
+     * Um processo não pode conter Doc de Administração
+     * e Doc Acadêmicos simultaneamente, mas Atas podem
+     * 
+     * Um processo não pode ser despachado apenas com atas
+     * 
+     * Um processo não pode despachar Doc de graduação e Pós
+     * ao mesmo tempo (Feito)
+     * 
+     * Uma Portaria e Edital com 100 páginas é um
+     * Documento Substancial, portanto devem ser despachados
+     * sozinho, exceto caso estiverem invalidos
+     *
+     * Diferentes Circulares e Ofícios só podem ser despachados
+     * juntos se tiverem um destinatário em comum.
+     * 
+     * Diplomas só podem ser despachados com Diplomas, Certificados
+     * ou Atas.
+     * 
+     * Atestados de diferentes categorias não podem estar no mesmo
+     * processo.
+     * 
+     * DESCUMPRIR ESSAS REGRAS GERA ESTRESSE!
+     * 
+     * Números de páginas máximos por processo = 250
+     * exceder este número causa perda de todos arquivos
+     * no despacho e uma Advertência administrativa
+     * 
+     * Sempre que um processo é despachado, outro vazio é criado
+     */
     public void trabalhar() {
+        Random aleatorio = new Random();
+        int escolheMonte = (int) aleatorio.nextInt(0, 9);
+        Documento[] monte = null;
+        Documento escolhido = null;
+        Processo[] processos = mesa.getProcessos();
+        CodigoCurso aux = null;
+        while (monte == null) {
+            switch (escolheMonte) {
+                case 0:
+                    aux = CodigoCurso.GRADUACAO_CIENCIA_DA_COMPUTACAO;
+                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+                    break;
+                case 1:
+                    aux = CodigoCurso.GRADUACAO_ENGENHARIA_AGRICOLA;
+                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+                    break;
+                case 2:
+                    aux = CodigoCurso.GRADUACAO_ENGENHARIA_CIVIL;
+                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+                    break;
+                case 3:
+                    aux = CodigoCurso.GRADUACAO_ENGENHARIA_ELETRICA;
+                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+                    break;
+                case 4:
+                    aux = CodigoCurso.GRADUACAO_ENGENHARIA_MECANICA;
+                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+                    break;
+                case 5:
+                    aux = CodigoCurso.GRADUACAO_ENGENHARIA_SOFTWARE;
+                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+                    break;
+                case 6:
+                    aux = CodigoCurso.GRADUACAO_ENGENHARIA_TELECOMUNICACOES;
+                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+                    break;
+                case 7:
+                    aux = CodigoCurso.POS_GRADUACAO_ENGENHARIA;
+                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+                    break;
+                case 8:
+                    aux = CodigoCurso.POS_GRADUACAO_ENGENHARIA_ELETRICA;
+                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+                    break;
+                case 9:
+                    aux = CodigoCurso.POS_GRADUACAO_ENGENHARIA_SOFTWARE;
+                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        if (monte.length != 0) {
+            int i;
+            boolean proximo;
+            for (i = 0; i < 5; i++) {
+                proximo = false;
+                for (int j = 0; j < monte.length; j++) {
+                    if (monte[j] != null) {
+                        escolhido = monte[j];
+                        if (processos[i].pegarCopiaDoProcesso().length == 0) {
+
+                            processos[i].adicionarDocumento(escolhido);
+                            universidade.removerDocumentoDoMonteDoCurso(escolhido, aux);
+
+                            monte[j] = null;
+                        } else if (((escolheMonte > 6) && hasDocumentosPos(processos[i])) || escolhido instanceof Ata) {
+
+                            processos[i].adicionarDocumento(escolhido);
+                            universidade.removerDocumentoDoMonteDoCurso(escolhido, aux);
+
+                            if (precisaRemoverDocumento(processos[i])) {
+                                processos[i].removerDocumento(escolhido);
+                                proximo = true;
+                                break;
+                            }
+                            monte[j] = null;
+
+                        } else {
+                            proximo = true;
+                            break;
+                        }
+                    }
+                }
+                if (!proximo)
+                    break;
+            }
+
+        }
         
+        for (Processo processo : processos) {
+            if (processo.pegarCopiaDoProcesso().length > 0)
+                universidade.despachar(processo);
+        }
     }
+
     /**
      * Aumenta o estresse do burocrata em uma unidade.
      */
