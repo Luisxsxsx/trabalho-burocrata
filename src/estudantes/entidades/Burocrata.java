@@ -2,10 +2,7 @@ package src.estudantes.entidades;
 
 import java.util.Random;
 
-import javax.sound.sampled.Port;
-
-import java.lang.reflect.Array;
-import java.util.Arrays;
+import java.util.LinkedList;
 
 import src.professor.entidades.*;
 
@@ -68,17 +65,6 @@ public class Burocrata {
         return false;
     }
 
-    private static boolean hasDocumentosPos(Processo processo) {
-        Documento[] docs = processo.pegarCopiaDoProcesso();
-        for (Documento documento : docs) {
-            if (documento.getCodigoCurso() == CodigoCurso.POS_GRADUACAO_ENGENHARIA
-                    || documento.getCodigoCurso() == CodigoCurso.POS_GRADUACAO_ENGENHARIA_ELETRICA
-                    || documento.getCodigoCurso() == CodigoCurso.POS_GRADUACAO_ENGENHARIA_SOFTWARE)
-                return true;
-        }
-        return false;
-    }
-
     private static boolean hasAdmDoc(Processo processo) {
         Documento[] docs = processo.pegarCopiaDoProcesso();
         for (Documento doc : docs) {
@@ -88,7 +74,24 @@ public class Burocrata {
         return false;
     }
 
-    private static boolean docSubstancial(Documento doc) {
+    private static boolean hasAcdDoc(Processo processo) {
+        Documento[] docs = processo.pegarCopiaDoProcesso();
+        for (Documento doc : docs) {
+            if (doc instanceof DocumentoAcademico)
+                return true;
+        }
+        return false;
+    }
+
+    private static boolean hasDocSubstancial(Processo processo) {
+        for (Documento documento : processo.pegarCopiaDoProcesso()) {
+            if (isDocSubstancial(documento))
+                return true;
+        }
+        return false;
+    }
+
+    private static boolean isDocSubstancial(Documento doc) {
         if (doc.getPaginas() >= 100) {
             if (doc instanceof Portaria) {
                 Portaria temp = (Portaria) doc;
@@ -110,24 +113,41 @@ public class Burocrata {
 
     private static boolean hasDestinatarioComum(Processo processo) {
         Documento[] docs = processo.pegarCopiaDoProcesso();
-        String[] destinatarios = null;
-        String destinatario = null;
+        LinkedList<String> nomes = new LinkedList<>();
         for (Documento doc : docs) {
             if (doc instanceof Oficio) {
                 Oficio temp = (Oficio) doc;
-                destinatario = temp.getDestinatario();
+                nomes.add(temp.getDestinatario());
             }
             if (doc instanceof Circular) {
                 Circular temp = (Circular) doc;
-                destinatarios = temp.getDestinatarios();
+                for (String string : temp.getDestinatarios()) {
+                    nomes.add(string);
+                }
             }
         }
-        if (!destinatario.equals(null) || !destinatarios.equals(null)) {
-            for (String nome : destinatarios) {
-                if (nome.equals(destinatario))
+        for(int i = 0; i < nomes.size(); i++)
+        {
+            for(int j = i+1; j < nomes.size(); j++){
+                if(nomes.get(i).equals(nomes.get(j)))
                     return true;
             }
         }
+
+        return false;
+    }
+
+    private static boolean hasOnlyAtas(Processo processo) {
+        for (Documento doc : processo.pegarCopiaDoProcesso()) {
+            if (!(doc instanceof Ata))
+                return false;
+        }
+        return true;
+    }
+
+    private static boolean isAdmDoc(Documento doc) {
+        if (doc instanceof DocumentoAdministrativo)
+            return true;
         return false;
     }
 
@@ -178,7 +198,7 @@ public class Burocrata {
      * juntos se tiverem um destinatário em comum.
      * 
      * Diplomas só podem ser despachados com Diplomas, Certificados
-     * ou Atas. - deixar um processo para diplomas e certificados e atas
+     * ou Atas.
      * 
      * Atestados de diferentes categorias não podem estar no mesmo
      * processo.
@@ -192,13 +212,16 @@ public class Burocrata {
      * Sempre que um processo é despachado, outro vazio é criado
      */
     public void trabalhar() {
+
         Random aleatorio = new Random();
         int escolheMonte = (int) aleatorio.nextInt(0, 9);
         Documento[] monte = null;
         Processo[] processos = mesa.getProcessos();
         CodigoCurso aux = null;
-        Documento escolhido = null;
-        while (monte.length == 0) {
+        Documento documento = null;
+        LinkedList<Documento> documentos = new LinkedList<>();
+
+        while (monte == null) {
             switch (escolheMonte) {
                 case 0:
                     aux = CodigoCurso.GRADUACAO_CIENCIA_DA_COMPUTACAO;
@@ -247,45 +270,66 @@ public class Burocrata {
 
         int i;
         boolean proximo;
-        for (i = 0; i < 3; i++) {
+        for (i = 0; i < 5; i++) {
             proximo = false;
             for (int j = 0; j < monte.length; j++) {
                 if (monte[j] != null) {
-                    escolhido = monte[j];
-                    if (processos[i].pegarCopiaDoProcesso().length == 0) {
+                    documento = monte[j];
+                    processos[i].adicionarDocumento(documento);
+                    universidade.removerDocumentoDoMonteDoCurso(documento, aux);
 
-                        processos[i].adicionarDocumento(escolhido);
-                        universidade.removerDocumentoDoMonteDoCurso(escolhido, aux);
-
-                        monte[j] = null;
-                    } else if (((escolheMonte > 6) && hasDocumentosPos(processos[i])) || escolhido instanceof Ata) {
-
-                        processos[i].adicionarDocumento(escolhido);
-                        universidade.removerDocumentoDoMonteDoCurso(escolhido, aux);
-
-                        if (precisaRemoverDocumento(processos[i])) {
-                            processos[i].removerDocumento(escolhido);
-                            proximo = true;
-                            break;
-                        }
-                        monte[j] = null;
-
-                    } else {
+                    if (precisaRemoverDocumento(processos[i])) {
+                        processos[i].removerDocumento(documento);
                         proximo = true;
                         break;
                     }
+                    monte[j] = null;
+
+                } else {
+                    proximo = true;
+                    break;
                 }
             }
             if (!proximo)
                 break;
         }
 
-        for (
-
-        Processo processo : processos) {
-            if (processo.pegarCopiaDoProcesso().length > 0)
-                universidade.despachar(processo);
+        for (Processo processo : processos) {
+            if (hasAdmDoc(processo) && hasAcdDoc(processo)) {
+                for (Documento doc : processo.pegarCopiaDoProcesso()) {
+                    if (isAdmDoc(doc)) {
+                        documentos.add(doc);
+                        processo.removerDocumento(doc);
+                    }
+                }
+            }
+            if (!hasDestinatarioComum(processo)) {
+                for (Documento doc : processo.pegarCopiaDoProcesso()) {
+                    if (doc instanceof Oficio || doc instanceof Circular) {
+                        documentos.add(doc);
+                        processo.removerDocumento(doc);
+                        break;
+                    }
+                }
+            }
+            if (hasDocSubstancial(processo) && processo.pegarCopiaDoProcesso().length > 1) {
+                for (Documento doc : processo.pegarCopiaDoProcesso()) {
+                    if (isDocSubstancial(doc)) {
+                        documentos.add(doc);
+                        processo.removerDocumento(doc);
+                        break;
+                    }
+                }
+            }
         }
+
+        for (Processo processo : processos) {
+            if (processo.pegarCopiaDoProcesso().length > 0) {
+                if (!hasOnlyAtas(processo))
+                    universidade.despachar(processo);
+            }
+        }
+
     }
 
     /**
