@@ -1,7 +1,6 @@
 package src.estudantes.entidades;
 
 import java.util.Random;
-
 import java.util.LinkedList;
 
 import src.professor.entidades.*;
@@ -151,34 +150,93 @@ public class Burocrata {
     }
 
     private void addDocumentosProcessos(Processo[] processos, Documento[] docs, CodigoCurso aux) {
-        int i;
         Documento[] monte = docs;
-        Documento documento = null;
-        boolean proximo;
-        for (i = 0; i < processos.length; i++) {
-            proximo = false;
+        // Documento documento = null;
+        // Verificar se tem documento substancial no monte
+        boolean docSubstancial = false;
+        for (Documento doc : monte) {
+            if (isDocSubstancial(doc)) {
+                docSubstancial = true;
+                break;
+            }
+        }
+
+        // Adicionar antes de tudo em um processo
+        if (docSubstancial) {
+            for (Processo processo : processos) {
+                for (int i = 0; i < monte.length; i++) {
+                    if (monte[i] != null && isDocSubstancial(monte[i]) && processo.pegarCopiaDoProcesso().length == 0) {
+                        processo.adicionarDocumento(monte[i]);
+                        universidade.removerDocumentoDoMonteDoCurso(monte[i], aux);
+                        monte[i] = null;
+                        break;
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < processos.length; i++) {
             for (int j = 0; j < monte.length; j++) {
                 if (monte[j] != null) {
-                    documento = monte[j];
-                    if(isDocSubstancial(documento) && processos[i].pegarCopiaDoProcesso().length > 0)
-                    processos[i].adicionarDocumento(documento);
-                    universidade.removerDocumentoDoMonteDoCurso(documento, aux);
+                    if (!hasDocSubstancial(processos[i])) {
+                        processos[i].adicionarDocumento(monte[j]);
+                        universidade.removerDocumentoDoMonteDoCurso(monte[j], aux);
 
-                    if (precisaRemoverDocumento(processos[i])) {
-                        processos[i].removerDocumento(documento);
-                        proximo = true;
-                        break;
+                        if (precisaRemoverDocumento(processos[i])) {
+                            processos[i].removerDocumento(monte[j]);
+                            break;
+                        }
                     }
                     monte[j] = null;
 
-                } else {
-                    proximo = true;
-                    break;
                 }
             }
-            if (!proximo)
+        }
+    }
+
+    private boolean hasDiplomasECertificados(Processo processo) {
+        int temp = -1;
+        for (Documento documento : processo.pegarCopiaDoProcesso()) {
+            if (documento instanceof Certificado) {
+                temp++;
+                break;
+            }
+        }
+        for (Documento documento : processo.pegarCopiaDoProcesso()) {
+            if (documento instanceof Diploma) {
+                temp++;
+                break;
+            }
+        }
+        if (temp == 1)
+            return true;
+        return false;
+    }
+
+    private boolean hasAtestadosDiferentes(Processo processo) {
+        int temp = 0;
+        for (Documento doc : processo.pegarCopiaDoProcesso()) {
+            if (doc instanceof Atestado)
+                temp++;
+            if (temp > 1)
                 break;
         }
+        if (temp > 1) {
+            LinkedList<Atestado> aux = new LinkedList<>();
+            Documento[] monte = processo.pegarCopiaDoProcesso();
+            for (Documento documento : monte) {
+                if (documento instanceof Atestado) {
+                    aux.add((Atestado) documento);
+                }
+            }
+            for (int i = 0; i < aux.size(); i++) {
+                for (int j = i; j < aux.size(); j++) {
+                    if (!(aux.get(i).getCategoria().equals(aux.get(j).getCategoria())))
+                        return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -228,10 +286,10 @@ public class Burocrata {
      * juntos se tiverem um destinatário em comum. (Feito)
      * 
      * Diplomas só podem ser despachados com Diplomas, Certificados
-     * ou Atas.
+     * ou Atas. (Feito)
      * 
      * Atestados de diferentes categorias não podem estar no mesmo
-     * processo.
+     * processo. (Feito)
      * 
      * DESCUMPRIR ESSAS REGRAS GERA ESTRESSE!
      * 
@@ -299,6 +357,9 @@ public class Burocrata {
         addDocumentosProcessos(processos, monte, aux);
 
         for (Processo processo : processos) {
+            if (hasDocSubstancial(processo))
+                continue;
+
             if (hasAdmDoc(processo) && hasAcdDoc(processo)) {
                 for (Documento doc : processo.pegarCopiaDoProcesso()) {
                     if (isAdmDoc(doc)) {
@@ -316,12 +377,35 @@ public class Burocrata {
                     }
                 }
             }
-            if (hasDocSubstancial(processo) && processo.pegarCopiaDoProcesso().length > 1) {
+            if (hasDiplomasECertificados(processo)) {
                 for (Documento doc : processo.pegarCopiaDoProcesso()) {
-                    if (!isDocSubstancial(doc)) {
+                    if (doc instanceof Diploma) {
                         docsRetirados.add(doc);
                         processo.removerDocumento(doc);
-                        break;
+                    }
+                }
+            }
+            if (hasAtestadosDiferentes(processo)) {
+                for (Documento documento : processo.pegarCopiaDoProcesso()) {
+                    if (documento instanceof Atestado) {
+                        docsRetirados.add(documento);
+                        processo.removerDocumento(documento);
+                    }
+                }
+            }
+        }
+        Documento[] monteRetirados = docsRetirados.toArray(new Documento[docsRetirados.size()]);
+
+        for (Processo processo : processos) {
+            if (hasOnlyAtas(processo)) {
+                for (int i = 0; i < monteRetirados.length; i++) {
+                    if (monteRetirados[i] != null) {
+                        processo.adicionarDocumento(monteRetirados[i]);
+                        if (precisaRemoverDocumento(processo)) {
+                            processo.removerDocumento(monteRetirados[i]);
+                            continue;
+                        }
+                        monteRetirados[i] = null;
                     }
                 }
             }
