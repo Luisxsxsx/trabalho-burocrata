@@ -46,7 +46,7 @@ public class Burocrata {
         return estresse;
     }
 
-    private static int contarPaginasProcesso(Processo processo) {
+    private int contarPaginasProcesso(Processo processo) {
         int paginas = 0;
         Documento[] docs = processo.pegarCopiaDoProcesso();
         if (docs.length == 0)
@@ -59,13 +59,13 @@ public class Burocrata {
         return paginas;
     }
 
-    private static boolean precisaRemoverDocumento(Processo processo) {
+    private boolean precisaRemoverDocumento(Processo processo) {
         if (contarPaginasProcesso(processo) > 250)
             return true;
         return false;
     }
 
-    private static boolean hasAdmDoc(Processo processo) {
+    private boolean hasAdmDoc(Processo processo) {
         Documento[] docs = processo.pegarCopiaDoProcesso();
         for (Documento doc : docs) {
             if (doc instanceof DocumentoAdministrativo)
@@ -74,7 +74,7 @@ public class Burocrata {
         return false;
     }
 
-    private static boolean hasAcdDoc(Processo processo) {
+    private boolean hasAcdDoc(Processo processo) {
         Documento[] docs = processo.pegarCopiaDoProcesso();
         for (Documento doc : docs) {
             if (doc instanceof DocumentoAcademico)
@@ -83,7 +83,7 @@ public class Burocrata {
         return false;
     }
 
-    private static boolean hasDocSubstancial(Processo processo) {
+    private boolean hasDocSubstancial(Processo processo) {
         for (Documento documento : processo.pegarCopiaDoProcesso()) {
             if (isDocSubstancial(documento))
                 return true;
@@ -91,7 +91,7 @@ public class Burocrata {
         return false;
     }
 
-    private static boolean isDocSubstancial(Documento doc) {
+    private boolean isDocSubstancial(Documento doc) {
         if (doc.getPaginas() >= 100) {
             if (doc instanceof Portaria) {
                 Portaria temp = (Portaria) doc;
@@ -111,7 +111,7 @@ public class Burocrata {
         return false;
     }
 
-    private static boolean hasDestinatarioComum(Processo processo) {
+    private boolean hasDestinatarioComum(Processo processo) {
         Documento[] docs = processo.pegarCopiaDoProcesso();
         LinkedList<String> nomes = new LinkedList<>();
         for (Documento doc : docs) {
@@ -126,10 +126,9 @@ public class Burocrata {
                 }
             }
         }
-        for(int i = 0; i < nomes.size(); i++)
-        {
-            for(int j = i+1; j < nomes.size(); j++){
-                if(nomes.get(i).equals(nomes.get(j)))
+        for (int i = 0; i < nomes.size(); i++) {
+            for (int j = i + 1; j < nomes.size(); j++) {
+                if (nomes.get(i).equals(nomes.get(j)))
                     return true;
             }
         }
@@ -137,7 +136,7 @@ public class Burocrata {
         return false;
     }
 
-    private static boolean hasOnlyAtas(Processo processo) {
+    private boolean hasOnlyAtas(Processo processo) {
         for (Documento doc : processo.pegarCopiaDoProcesso()) {
             if (!(doc instanceof Ata))
                 return false;
@@ -145,10 +144,41 @@ public class Burocrata {
         return true;
     }
 
-    private static boolean isAdmDoc(Documento doc) {
+    private boolean isAdmDoc(Documento doc) {
         if (doc instanceof DocumentoAdministrativo)
             return true;
         return false;
+    }
+
+    private void addDocumentosProcessos(Processo[] processos, Documento[] docs, CodigoCurso aux) {
+        int i;
+        Documento[] monte = docs;
+        Documento documento = null;
+        boolean proximo;
+        for (i = 0; i < processos.length; i++) {
+            proximo = false;
+            for (int j = 0; j < monte.length; j++) {
+                if (monte[j] != null) {
+                    documento = monte[j];
+                    if(isDocSubstancial(documento) && processos[i].pegarCopiaDoProcesso().length > 0)
+                    processos[i].adicionarDocumento(documento);
+                    universidade.removerDocumentoDoMonteDoCurso(documento, aux);
+
+                    if (precisaRemoverDocumento(processos[i])) {
+                        processos[i].removerDocumento(documento);
+                        proximo = true;
+                        break;
+                    }
+                    monte[j] = null;
+
+                } else {
+                    proximo = true;
+                    break;
+                }
+            }
+            if (!proximo)
+                break;
+        }
     }
 
     /**
@@ -183,19 +213,19 @@ public class Burocrata {
      */
     /*
      * Um processo não pode conter Doc de Administração
-     * e Doc Acadêmicos simultaneamente, mas Atas podem
+     * e Doc Acadêmicos simultaneamente, mas Atas podem (feito)
      * 
-     * Um processo não pode ser despachado apenas com atas
+     * Um processo não pode ser despachado apenas com atas (feito)
      * 
      * Um processo não pode despachar Doc de graduação e Pós
      * ao mesmo tempo (Feito)
      * 
      * Uma Portaria e Edital com 100 páginas é um
      * Documento Substancial, portanto devem ser
-     * despachados sozinho, exceto caso estiverem invalidos
+     * despachados sozinho, exceto caso estiverem invalidos (Feito)
      *
      * Diferentes Circulares e Ofícios só podem ser despachados
-     * juntos se tiverem um destinatário em comum.
+     * juntos se tiverem um destinatário em comum. (Feito)
      * 
      * Diplomas só podem ser despachados com Diplomas, Certificados
      * ou Atas.
@@ -212,14 +242,12 @@ public class Burocrata {
      * Sempre que um processo é despachado, outro vazio é criado
      */
     public void trabalhar() {
-
         Random aleatorio = new Random();
         int escolheMonte = (int) aleatorio.nextInt(0, 9);
         Documento[] monte = null;
         Processo[] processos = mesa.getProcessos();
         CodigoCurso aux = null;
-        Documento documento = null;
-        LinkedList<Documento> documentos = new LinkedList<>();
+        LinkedList<Documento> docsRetirados = new LinkedList<>();
 
         while (monte == null) {
             switch (escolheMonte) {
@@ -268,37 +296,13 @@ public class Burocrata {
             }
         }
 
-        int i;
-        boolean proximo;
-        for (i = 0; i < 5; i++) {
-            proximo = false;
-            for (int j = 0; j < monte.length; j++) {
-                if (monte[j] != null) {
-                    documento = monte[j];
-                    processos[i].adicionarDocumento(documento);
-                    universidade.removerDocumentoDoMonteDoCurso(documento, aux);
-
-                    if (precisaRemoverDocumento(processos[i])) {
-                        processos[i].removerDocumento(documento);
-                        proximo = true;
-                        break;
-                    }
-                    monte[j] = null;
-
-                } else {
-                    proximo = true;
-                    break;
-                }
-            }
-            if (!proximo)
-                break;
-        }
+        addDocumentosProcessos(processos, monte, aux);
 
         for (Processo processo : processos) {
             if (hasAdmDoc(processo) && hasAcdDoc(processo)) {
                 for (Documento doc : processo.pegarCopiaDoProcesso()) {
                     if (isAdmDoc(doc)) {
-                        documentos.add(doc);
+                        docsRetirados.add(doc);
                         processo.removerDocumento(doc);
                     }
                 }
@@ -306,7 +310,7 @@ public class Burocrata {
             if (!hasDestinatarioComum(processo)) {
                 for (Documento doc : processo.pegarCopiaDoProcesso()) {
                     if (doc instanceof Oficio || doc instanceof Circular) {
-                        documentos.add(doc);
+                        docsRetirados.add(doc);
                         processo.removerDocumento(doc);
                         break;
                     }
@@ -314,8 +318,8 @@ public class Burocrata {
             }
             if (hasDocSubstancial(processo) && processo.pegarCopiaDoProcesso().length > 1) {
                 for (Documento doc : processo.pegarCopiaDoProcesso()) {
-                    if (isDocSubstancial(doc)) {
-                        documentos.add(doc);
+                    if (!isDocSubstancial(doc)) {
+                        docsRetirados.add(doc);
                         processo.removerDocumento(doc);
                         break;
                     }
@@ -329,7 +333,6 @@ public class Burocrata {
                     universidade.despachar(processo);
             }
         }
-
     }
 
     /**
