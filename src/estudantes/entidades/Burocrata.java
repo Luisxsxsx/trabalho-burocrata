@@ -1,6 +1,6 @@
 package src.estudantes.entidades;
 
-import java.util.Random;
+// import java.util.Random;
 import java.util.LinkedList;
 
 import src.professor.entidades.*;
@@ -240,6 +240,22 @@ public class Burocrata {
     }
 
     /**
+     * Metodo para escolher o monte com a maior quantidade de documentos
+     * @return CodigoCurso
+     */
+    private CodigoCurso escolheMaiorMonte(){
+        CodigoCurso temp = null;
+        int maior = 0;
+        for (CodigoCurso curso : CodigoCurso.values()) {
+            if(universidade.contarDocumentosNoMonteDoCurso(curso) > maior){
+                maior = universidade.contarDocumentosNoMonteDoCurso(curso);
+                temp = curso;
+            }
+        }   
+        return temp;
+    }
+
+    /**
      * Executa a lógica de criação e despacho dos processos.
      * <br>
      * <br>
@@ -300,59 +316,65 @@ public class Burocrata {
      * Sempre que um processo é despachado, outro vazio é criado
      */
     public void trabalhar() {
-        Random aleatorio = new Random();
-        int escolheMonte = aleatorio.nextInt(0, 9);
+        // Random aleatorio = new Random();
+        // int escolheMonte;
         Documento[] monte = null;
         Processo[] processos = mesa.getProcessos();
         CodigoCurso aux = null;
         LinkedList<Documento> docsRetirados = new LinkedList<>();
 
-        while (monte == null) {
-            switch (escolheMonte) {
-                case 0:
-                    aux = CodigoCurso.GRADUACAO_CIENCIA_DA_COMPUTACAO;
-                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
-                    break;
-                case 1:
-                    aux = CodigoCurso.GRADUACAO_ENGENHARIA_AGRICOLA;
-                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
-                    break;
-                case 2:
-                    aux = CodigoCurso.GRADUACAO_ENGENHARIA_CIVIL;
-                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
-                    break;
-                case 3:
-                    aux = CodigoCurso.GRADUACAO_ENGENHARIA_ELETRICA;
-                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
-                    break;
-                case 4:
-                    aux = CodigoCurso.GRADUACAO_ENGENHARIA_MECANICA;
-                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
-                    break;
-                case 5:
-                    aux = CodigoCurso.GRADUACAO_ENGENHARIA_SOFTWARE;
-                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
-                    break;
-                case 6:
-                    aux = CodigoCurso.GRADUACAO_ENGENHARIA_TELECOMUNICACOES;
-                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
-                    break;
-                case 7:
-                    aux = CodigoCurso.POS_GRADUACAO_ENGENHARIA;
-                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
-                    break;
-                case 8:
-                    aux = CodigoCurso.POS_GRADUACAO_ENGENHARIA_ELETRICA;
-                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
-                    break;
-                case 9:
-                    aux = CodigoCurso.POS_GRADUACAO_ENGENHARIA_SOFTWARE;
-                    monte = universidade.pegarCopiaDoMonteDoCurso(aux);
-                    break;
-                default:
-                    break;
-            }
-        }
+        aux = escolheMaiorMonte();
+        // System.out.println(aux);
+        monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+
+        // while (monte == null || monte.length == 0) {
+        //     escolheMonte = aleatorio.nextInt(0, 10);
+        //     // System.out.println(escolheMonte);
+        //     switch (escolheMonte) {
+        //         case 0:
+        //             aux = CodigoCurso.GRADUACAO_CIENCIA_DA_COMPUTACAO;
+        //             monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+        //             break;
+        //         case 1:
+        //             aux = CodigoCurso.GRADUACAO_ENGENHARIA_AGRICOLA;
+        //             monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+        //             break;
+        //         case 2:
+        //             aux = CodigoCurso.GRADUACAO_ENGENHARIA_CIVIL;
+        //             monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+        //             break;
+        //         case 3:
+        //             aux = CodigoCurso.GRADUACAO_ENGENHARIA_ELETRICA;
+        //             monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+        //             break;
+        //         case 4:
+        //             aux = CodigoCurso.GRADUACAO_ENGENHARIA_MECANICA;
+        //             monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+        //             break;
+        //         case 5:
+        //             aux = CodigoCurso.GRADUACAO_ENGENHARIA_SOFTWARE;
+        //             monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+        //             break;
+        //         case 6:
+        //             aux = CodigoCurso.GRADUACAO_ENGENHARIA_TELECOMUNICACOES;
+        //             monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+        //             break;
+        //         case 7:
+        //             aux = CodigoCurso.POS_GRADUACAO_ENGENHARIA;
+        //             monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+        //             break;
+        //         case 8:
+        //             aux = CodigoCurso.POS_GRADUACAO_ENGENHARIA_ELETRICA;
+        //             monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+        //             break;
+        //         case 9:
+        //             aux = CodigoCurso.POS_GRADUACAO_ENGENHARIA_SOFTWARE;
+        //             monte = universidade.pegarCopiaDoMonteDoCurso(aux);
+        //             break;
+        //         default:
+        //             break;
+        //     }
+        // }
 
         addDocumentosProcessos(processos, monte, aux);
 
@@ -408,6 +430,13 @@ public class Burocrata {
                         monteRetirados[i] = null;
                     }
                 }
+            }
+        }
+
+        if(monteRetirados.length > 0){
+            // System.out.println(monteRetirados.length);
+            for (Documento documento : monteRetirados) {
+                universidade.devolverDocumentoParaMonteDoCurso(documento, aux);
             }
         }
 
