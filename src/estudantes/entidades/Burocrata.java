@@ -301,7 +301,7 @@ public class Burocrata {
      */
     public void trabalhar() {
         Random aleatorio = new Random();
-        int escolheMonte = (int) aleatorio.nextInt(0, 9);
+        int escolheMonte = aleatorio.nextInt(0, 9);
         Documento[] monte = null;
         Processo[] processos = mesa.getProcessos();
         CodigoCurso aux = null;
